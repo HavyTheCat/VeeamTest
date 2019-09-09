@@ -23,5 +23,10 @@ namespace VeemTest.Constant
         /// </summary>
         public const string DECOMPRESS = "decompress";
 
+        /// <summary>
+        /// Const for blocksize
+        /// </summary>
+        public const int BLOCK_SIZE = 10000000;
+
     }
 }

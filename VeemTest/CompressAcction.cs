@@ -52,11 +52,11 @@ namespace VeemTest
         {
             int res;
             //Calculating slice size
-            if (fileLengh - pos <= blockSize)
+            if (fileLengh - pos <= CommonApplicationConstants.BLOCK_SIZE)
                 res = (int)(fileLengh - pos);
 
             else
-                res = blockSize;
+                res = CommonApplicationConstants.BLOCK_SIZE;
 
             return res;
         }

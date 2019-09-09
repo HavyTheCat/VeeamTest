@@ -8,7 +8,7 @@ namespace VeemTest
         {
             Console.WriteLine("Hello World!");
 
-            IArchivActionable action = new DecompressAction(@"C:\test\test12.mkv.gz", @"C:\test\test12.mkv");
+            IArchivActionable action = new DecompressAction(@"C:\test\test13.mkv.gz", @"C:\test\test13.mkv");
             action.Start();
         }
     }
