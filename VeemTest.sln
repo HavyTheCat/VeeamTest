@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28902.138
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VeemTest", "VeemTest\VeemTest.csproj", "{D0AA8C5B-C932-4F99-9F2D-D5684A6D56C2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D0AA8C5B-C932-4F99-9F2D-D5684A6D56C2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D0AA8C5B-C932-4F99-9F2D-D5684A6D56C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D0AA8C5B-C932-4F99-9F2D-D5684A6D56C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D0AA8C5B-C932-4F99-9F2D-D5684A6D56C2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {678E9468-54D7-401E-BA62-0F36485A967B}
+	EndGlobalSection
+EndGlobal
