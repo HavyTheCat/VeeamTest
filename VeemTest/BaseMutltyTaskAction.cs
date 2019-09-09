@@ -1,7 +1,7 @@
 ﻿
 namespace VeemTest
 {
-    public abstract class BaseMutltyTaskAction
+    public abstract class BaseMutltyThreadAction
     {
         protected bool _cancelled = false;
         protected bool _success = false;

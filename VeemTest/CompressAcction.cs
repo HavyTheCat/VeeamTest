@@ -10,12 +10,11 @@ using VeemTest.Constant;
 
 namespace VeemTest
 {
-    public class CompressAcction : BaseAction, IArchivActionable
+    public sealed class CompressAction : BaseGzipAction, IArchivActionable
     {
-        public CompressAcction(string input, string output)
+        public CompressAction(string input, string output)
             : base(input, output) { }
 
-  
 
         protected override void AppendAllBytes(string path, byte[] bytes)
         {
@@ -49,7 +48,7 @@ namespace VeemTest
             return CompressionMode.Compress;
         }
 
-        protected override int GetReadedLenght(long fileLengh, long pos)
+        protected override int GetReadedlength(long fileLengh, long pos)
         {
             int res;
             //Calculating slice size

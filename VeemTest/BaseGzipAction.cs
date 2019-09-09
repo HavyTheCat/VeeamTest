@@ -13,65 +13,78 @@ namespace VeemTest
     /// <summary>
     /// supertype of archived actions
     /// </summary>
-    public abstract  class BaseAction : IArchivActionable
+    public abstract class BaseGzipAction : BaseMutltyThreadAction, IArchivActionable
     {
-        protected bool _cancelled = false;
-        protected bool _success = false;
-        protected string sourceFile, destinationFile;
-        protected static int _threads = Environment.ProcessorCount;
-
-        protected int blockSize = 1000000;
-        protected BlockingCollection<Block> _readCollection = new BlockingCollection<Block>();
-        protected BlockingCollection<Block> _writeCollection = new BlockingCollection<Block>();
-
-        protected int _count = 1;
-        protected int _lastIndex;
-
-        
-
-        protected int GetNextIndex()
-        {
-            Interlocked.Increment(ref _count);
-            return _count;
-        }
-
-        protected abstract CompressionMode GetGzipReadingType();
-
-        public BaseAction(string input, string output)
+        public BaseGzipAction(string input, string output)
         {
             sourceFile = input;
             destinationFile = output;
         }
 
-        public virtual void Start()
-        {
+        protected int blockSize = 1000000;
+        protected string sourceFile, destinationFile;
+        private static int _threads = Environment.ProcessorCount;
 
+
+        private BlockingCollection<Block> _readCollection = new BlockingCollection<Block>();
+        private BlockingCollection<Block> _writeCollection = new BlockingCollection<Block>();
+
+        private int _count = 1;
+        private int _lastIndex;
+
+        #region Implements of BaseMutltyTaskAction
+
+        /// <summary>
+        /// Start action
+        /// </summary>
+        public override void Start()
+        {
+            //Create new file by provided path
             CreateFile(destinationFile + GetExtention());
 
+            //Create and start thread for reading input file
             Thread _reader = new Thread(new ThreadStart(Read));
             _reader.Start();
 
+            // for each avalible on current machine process create action thread
             for (int i = 0; i < _threads; i++)
             {
                 Thread _compress = new Thread(new ThreadStart(Action));
                 _compress.Start();
             }
-
+            //Create and start writing outputfile
             Thread writer = new Thread(new ThreadStart(Write));
             writer.Start();
         }
 
-        private  void Action()
+        /// <summary>
+        /// stop action
+        /// </summary>
+        public override void Stop()
+        {
+            _cancelled = true;
+        }
+
+        /// <summary>
+        /// return seccess flag
+        /// </summary>
+        /// <returns></returns>
+        public override int Result() => !_cancelled && _success ? 0 : 1;
+
+        /// <summary>
+        /// Gzip action
+        /// </summary>
+        protected override sealed void Action()
         {
             try
             {
                 int blockId = 0;
                 while (!_cancelled && (!_readCollection.IsCompleted || _readCollection.Count > 0))
                 {
-                    Block block = _readCollection.Take();
+                    Block block = new Block();
 
-                    if (block == null)
-                        return;
+                    if (!_readCollection.TryTake(out block))
+                        continue;
 
                     Block gzipBlock = new Block()
                     {
@@ -86,15 +99,23 @@ namespace VeemTest
                         if (_count == gzipBlock.ID && _writeCollection.Count < 10)
                         {
                             addRes = _writeCollection.TryAdd(gzipBlock, 100);
-                            GetNextIndex();
+#if DEBUG
+                            Console.WriteLine($"Gzip block with id :{gzipBlock.ID}");
+#endif
+                            if (_lastIndex == blockId)
+                            {
+                                _writeCollection.CompleteAdding();
+                                _readCollection.CompleteAdding();
+                            }
+                            else
+                                GetNextIndex();
                         }
+                        else
+                            Thread.Sleep(100);
                     }
+
                 }
-                if (_lastIndex == blockId)
-                {
-                    _writeCollection.CompleteAdding();
-                    _readCollection.CompleteAdding();
-                }
+
 
             }
             catch (Exception ex)
@@ -104,26 +125,91 @@ namespace VeemTest
             }
         }
 
+        #endregion
+
+        #region Abstract methods
+
+        /// <summary>
+        /// Get processed byte array
+        /// </summary>
+        /// <param name="block"></param>
+        /// <returns></returns>
         protected abstract byte[] GetGzipArray(Block block);
 
-        public void Stop()
+        /// <summary>
+        /// Get output file extention
+        /// </summary>
+        /// <returns></returns>
+        protected abstract string GetExtention();
+
+        /// <summary>
+        /// Get processed byte array length
+        /// </summary>
+        /// <param name="fileLengh"></param>
+        /// <param name="pos"></param>
+        /// <returns></returns>
+        protected abstract int GetReadedlength(long fileLengh, long pos);
+
+        /// <summary>
+        /// Get Gzip reader reading type
+        /// </summary>
+        /// <returns></returns>
+        protected abstract CompressionMode GetGzipReadingType();
+
+        /// <summary>
+        /// open input file and get byte array
+        /// </summary>
+        /// <param name="sourceFile">path to input file</param>
+        /// <param name="pos">curent position in byte stream</param>
+        /// <param name="bytesRead">size of slice array</param>
+        /// <returns>byte arr of input file by giving size</returns>
+        protected abstract byte[] GetSlice(string sourceFile, long pos, int bytesRead);
+
+        #endregion
+
+        #region virtual methods
+
+        /// <summary>
+        /// Open output file and write bytearray to it
+        /// </summary>
+        /// <param name="path"></param>
+        /// <param name="bytes"></param>
+        protected virtual void AppendAllBytes(string path, byte[] bytes)
         {
-            _cancelled = true;
+            using (var stream = new FileStream(path, FileMode.Append))
+            {
+                stream.Write(bytes, 0, bytes.Length);
+            }
         }
 
-        protected abstract string GetExtention();
+        #endregion
+
+        #region private methods
+
+        /// <summary>
+        /// Set index of next writing block to write collection
+        /// </summary>
+        /// <returns></returns>
+        private int GetNextIndex()
+        {
+            Interlocked.Increment(ref _count);
+            return _count;
+        }
 
         /// <summary>
         /// Creating new file with output name
         /// </summary>
         /// <param name="destinationFile"></param>
-        protected void CreateFile(string destinationFile)
+        private void CreateFile(string destinationFile)
         {
             using (FileStream fs = File.Create(destinationFile))
             { }
         }
 
-        protected virtual void Read()
+        /// <summary>
+        /// read input file
+        /// </summary>
+        private void Read()
         {
             try
             {
@@ -133,26 +219,19 @@ namespace VeemTest
                 //Bytestram lengh of input file
                 long fileLengh = GetFileLength(sourceFile);
 
-                //lenght of byte for parts
+                //length of byte for parts
                 int bytesRead;
 
-                //Byte array for ziping
+                //Byte array for Gziping
                 byte[] slice;
 
-                //identifier for priority to write
+                //identifier of block
                 int id = 0;
 
-                //while file lengh grater then current position and not set cancell
+                //while file length grater then current position and not set cancell
                 while (pos < fileLengh && !_cancelled)
                 {
-                    bytesRead = GetReadedLenght(fileLengh, pos);
-
-                    ////Calculating slice size
-                    //if (fileLengh - pos <= blockSize)
-                    //    bytesRead = (int)(fileLengh - pos);
-
-                    //else
-                    //    bytesRead = blockSize;
+                    bytesRead = GetReadedlength(fileLengh, pos);
 
                     slice = GetSlice(sourceFile, pos, bytesRead);
 
@@ -168,8 +247,8 @@ namespace VeemTest
                         Buffer = slice
                     };
 
-                    // not gona add another block before first 10 for saveing some RAM
-                    //I gues the some better solution for that
+                    // not gona add another block until the first ten are read.
+                    //I gues the some better solution for tha saving ram 
                     while (true && !_cancelled)
                     {
                         if (_readCollection.Count() < 10)
@@ -177,13 +256,14 @@ namespace VeemTest
                             _readCollection.Add(readBlock);
                             break;
                         }
+                        else
+                            Thread.Sleep(100);
                     }
 
                 }
-                //Set last id of block for indentify end for ziping
+                //Set last id of block for indentify end of ziping
                 _lastIndex = id;
-               // _readCollection.CompleteAdding();
-
+                _readCollection.CompleteAdding();
             }
             catch (Exception ex)
             {
@@ -192,25 +272,12 @@ namespace VeemTest
             }
         }
 
-        protected abstract int GetReadedLenght(long fileLengh, long pos);
-
-        /// <summary>
-        /// open input file and get byte array
-        /// </summary>
-        /// <param name="sourceFile">path to input file</param>
-        /// <param name="pos">curent position in byte stream</param>
-        /// <param name="bytesRead">size of slice array</param>
-        /// <returns>byte arr of input file by giving size</returns>
-        protected abstract byte[] GetSlice(string sourceFile, long pos, int bytesRead);
-
-
-
         /// <summary>
         /// open file and get stream lengh
         /// </summary>
         /// <param name="sourceFile"></param>
         /// <returns></returns>
-        protected long GetFileLength(string sourceFile)
+        private long GetFileLength(string sourceFile)
         {
             long res = 0;
             using (FileStream _fileToBeCompressed = new FileStream(sourceFile, FileMode.Open))
@@ -221,19 +288,9 @@ namespace VeemTest
         }
 
         /// <summary>
-        /// Open output file and write bytearray to it
+        /// Write method  
         /// </summary>
-        /// <param name="path"></param>
-        /// <param name="bytes"></param>
-        protected virtual void AppendAllBytes(string path, byte[] bytes)
-        {
-            using (var stream = new FileStream(path, FileMode.Append))
-            {
-                stream.Write(bytes, 0, bytes.Length);
-            }
-        }
-
-        protected void Write()
+        private void Write()
         {
             try
             {
@@ -242,6 +299,7 @@ namespace VeemTest
                     Block _block = _writeCollection.Take();
                     AppendAllBytes(destinationFile + GetExtention(), _block.Buffer);
                 }
+                _success = true;
 
             }
             catch (Exception ex)
@@ -249,20 +307,12 @@ namespace VeemTest
                 Console.WriteLine(ex.Message);
                 _cancelled = true;
             }
+            finally
+            {
+                Console.WriteLine(Result());
+            }
 
         }
-
-
-
-        /// <summary>
-        /// return seccess flag
-        /// </summary>
-        /// <returns></returns>
-        public int Result()
-        {
-            if (!_cancelled && _success)
-                return 0;
-            return 1;
-        }
+        #endregion
     }
 }

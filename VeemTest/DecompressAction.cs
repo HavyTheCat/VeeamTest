@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace VeemTest
 {
-    public class DecompressAction : BaseAction, IArchivActionable
+    public class DecompressAction : BaseGzipAction, IArchivActionable
     {
         public DecompressAction(string input, string output)
             : base(input, output) { }
@@ -36,7 +36,7 @@ namespace VeemTest
             return CompressionMode.Decompress;
         }
 
-        protected override int GetReadedLenght(long fileLengh, long pos)
+        protected override int GetReadedlength(long fileLengh, long pos)
         {
             int res;
             using (FileStream _compressedFile = new FileStream(sourceFile, FileMode.Open))
