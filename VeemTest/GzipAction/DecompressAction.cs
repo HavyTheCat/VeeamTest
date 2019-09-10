@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace VeemTest
 {
-    public class DecompressAction : BaseGzipAction, IArchivActionable
+    public class DecompressAction : BaseGzipAction, IArchiveActionable
     {
         public DecompressAction(string input, string output)
             : base(input, output) { }

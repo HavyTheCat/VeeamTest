@@ -10,7 +10,7 @@ using VeemTest.Constant;
 
 namespace VeemTest
 {
-    public sealed class CompressAction : BaseGzipAction, IArchivActionable
+    public sealed class CompressAction : BaseGzipAction, IArchiveActionable
     {
         public CompressAction(string input, string output)
             : base(input, output) { }

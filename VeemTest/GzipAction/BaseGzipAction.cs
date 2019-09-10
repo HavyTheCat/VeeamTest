@@ -13,7 +13,7 @@ namespace VeemTest
     /// <summary>
     /// supertype of archived actions
     /// </summary>
-    public abstract class BaseGzipAction : BaseMutltyThreadAction, IArchivActionable
+    public abstract class BaseGzipAction : BaseMutltyThreadAction, IArchiveActionable
     {
         public BaseGzipAction(string input, string output)
         {
@@ -55,6 +55,9 @@ namespace VeemTest
             //Create and start writing outputfile
             Thread writer = new Thread(new ThreadStart(Write));
             writer.Start();
+            writer.Join();
+
+            Console.WriteLine(Result());
         }
 
         /// <summary>
@@ -299,7 +302,7 @@ namespace VeemTest
                     Block _block = _writeCollection.Take();
                     AppendAllBytes(destinationFile + GetExtention(), _block.Buffer);
                 }
-                _success = true;
+                _success = !_cancelled;
 
             }
             catch (Exception ex)
@@ -307,11 +310,6 @@ namespace VeemTest
                 Console.WriteLine(ex.Message);
                 _cancelled = true;
             }
-            finally
-            {
-                Console.WriteLine(Result());
-            }
-
         }
         #endregion
     }

@@ -29,4 +29,10 @@ namespace VeemTest.Constant
         public const int BLOCK_SIZE = 10000000;
 
     }
+
+    public enum ActionType
+    {
+        Compress,
+        Decompress
+    }
 }

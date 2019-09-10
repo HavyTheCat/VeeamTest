@@ -3,7 +3,7 @@
     /// <summary>
     /// Archivable action
     /// </summary>
-    public interface IArchivActionable
+    public interface IArchiveActionable
     {
         /// <summary>
         /// Start action
